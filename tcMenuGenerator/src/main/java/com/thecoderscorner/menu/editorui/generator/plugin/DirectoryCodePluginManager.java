@@ -57,23 +57,24 @@ public class DirectoryCodePluginManager implements CodePluginManager {
         imagesLoaded.clear();
 
         String[] locations = paths.split(System.getProperty("path.separator"));
-        for (String location : locations) {
-            location = location + (sourceDir == "" ? "" : "/" + sourceDir);
+        for (String loc : locations) {
+            final String location = loc + (sourceDir == "" ? "" : "/" + sourceDir);
             logger.log(Level.INFO, "Looking for plugins at " + location);
-            pluginPaths.add(Paths.get(location));
             try {
                 Files.list(Paths.get(location)).filter(p->p.toString().endsWith(".jar")).forEach(p->{
                     try(ZipInputStream zipFile = new ZipInputStream(new FileInputStream(p.toFile()))) {
                         ZipEntry entry;
                         while((entry = zipFile.getNextEntry()) != null) {
                             if(entry.getName().equals("META-INF/tcmenu/tcmenu-plugin.json")) {
-                                logger.log(Level.INFO, "Found configuration file " + entry.getName());
+                                logger.log(Level.INFO, "Found configuration file " + location + "/" + entry.getName());
+                                if (!pluginPaths.contains(Paths.get(location))) pluginPaths.add(Paths.get(location));
                                 CodePluginConfig config = parsePluginConfig(zipFile);
                                 configurationsLoaded.add(config);
                                 config.getPlugins().forEach(item -> itemToConfig.put(item, config));
                             }
                             else if(entry.getName().matches("META-INF/tcmenu/.*\\.(png|jpg)")) {
-                                logger.log(Level.INFO, "Found image file " + entry.getName());
+                                logger.log(Level.INFO, "Found image file " + location + "/" + entry.getName());
+                                if (!pluginPaths.contains(Paths.get(location))) pluginPaths.add(Paths.get(location));
                                 Image img = new Image(zipFile);
                                 logger.log(Level.INFO, "Image loaded, Width: {0}, height: {1}", img.getWidth(), img.getHeight());
                                 imagesLoaded.put(entry.getName().substring(16), img);
@@ -88,9 +89,12 @@ public class DirectoryCodePluginManager implements CodePluginManager {
                 logger.log(Level.INFO, "No plugins found at " + location );
             }
         }
+        /* The docs at https://docs.oracle.com/javase/9/docs/api/java/lang/module/ModuleFinder.html#of-java.nio.file.Path...-
+         * say that ModuleFinder "finds the first occurrence of a module with a given name and ignores other modules of that name that appear later in the sequence."
+         * but that doesn't seem to be the case, and it still loads duplicate modules when in multiple paths. */
         loadModules(pluginPaths.toArray(new Path[]{}), configurationsLoaded.stream()
             .map(CodePluginConfig::getModuleName)
-            .collect(Collectors.toList()));
+            .collect(Collectors.toSet()));
     }
 
     @Override
