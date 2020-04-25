@@ -84,7 +84,7 @@ public class DirectoryCodePluginManager implements CodePluginManager {
                         logger.log(Level.ERROR, "Unable to load JAR file", e);
                     }
                 });
-            } catch (java.nio.file.NoSuchFileException e) {
+            } catch (java.nio.file.NoSuchFileException|java.nio.file.NotDirectoryException e) {
                 logger.log(Level.INFO, "No plugins found at " + location );
             }
         }

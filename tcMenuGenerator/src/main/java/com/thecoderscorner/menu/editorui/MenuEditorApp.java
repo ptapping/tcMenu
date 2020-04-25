@@ -37,6 +37,11 @@ import java.nio.file.Paths;
  */
 public class MenuEditorApp extends Application {
 
+    // A "normal" entry point wrapper around the JavaFX one
+    public static void main(String[] args) {
+        launch(args);
+    }
+
     @Override
     public void start(Stage primaryStage) throws Exception {
 
